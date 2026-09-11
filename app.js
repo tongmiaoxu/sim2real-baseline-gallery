@@ -136,7 +136,8 @@
     const panelA = el('.panel[data-kind="real_A"] .panel-img');
     const panelB = el('.panel[data-kind="real_B"] .panel-img');
     const panelF = el('.panel[data-kind="fake_B"] .panel-img');
-    const panelErr = el('.panel[data-kind="error"] .panel-error-canvas');
+    const panelErrGT = el('.panel[data-kind="error_gt"] .panel-error-canvas');
+    const panelErrIn = el('.panel[data-kind="error_input"] .panel-error-canvas');
 
     panelA.src = s.real_A;
     panelB.src = s.real_B;
@@ -146,8 +147,12 @@
     panelF.dataset.full = s.fake_B;
 
     try {
-      const dataUrl = await computeErrorMap(s.real_B, s.fake_B, panelErr);
-      panelErr.dataset.full = dataUrl;
+      const [gtUrl, inUrl] = await Promise.all([
+        computeErrorMap(s.real_B, s.fake_B, panelErrGT),
+        computeErrorMap(s.real_A, s.fake_B, panelErrIn),
+      ]);
+      panelErrGT.dataset.full = gtUrl;
+      panelErrIn.dataset.full = inUrl;
     } catch (e) {
       console.error("error map failed", e);
     }

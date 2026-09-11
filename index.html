@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="robots" content="noindex, nofollow, noarchive" />
 <title>Sim2Real Baseline Gallery</title>
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,7 +15,7 @@
       <span class="brand-mark">◧</span>
       <div class="brand-text">
         <h1>Sim2Real Baseline Gallery</h1>
-        <p>Input / Ground Truth / Model Output / Error Map &mdash; per baseline, per task, per camera</p>
+        <p>Input / Ground Truth / Model Output / Error vs GT / Error vs Input &mdash; per baseline, per task, per camera</p>
       </div>
     </div>
     <div class="topbar-controls">
@@ -59,8 +58,12 @@
           <div class="panel-head"><span class="panel-tag tag-out">Model output</span><span class="panel-label">Translated (fake_B)</span></div>
           <div class="panel-canvas-wrap"><img class="panel-img" alt="model output" /></div>
         </figure>
-        <figure class="panel" data-kind="error">
-          <div class="panel-head"><span class="panel-tag tag-err">Error map</span><span class="panel-label">|model output &minus; ground truth|</span></div>
+        <figure class="panel" data-kind="error_gt">
+          <div class="panel-head"><span class="panel-tag tag-err">Error vs GT</span><span class="panel-label">|model output &minus; ground truth|</span></div>
+          <div class="panel-canvas-wrap"><canvas class="panel-error-canvas"></canvas></div>
+        </figure>
+        <figure class="panel" data-kind="error_input">
+          <div class="panel-head"><span class="panel-tag tag-err2">Error vs input</span><span class="panel-label">|model output &minus; input|</span></div>
           <div class="panel-canvas-wrap"><canvas class="panel-error-canvas"></canvas></div>
         </figure>
       </div>
