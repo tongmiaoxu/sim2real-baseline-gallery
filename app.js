@@ -235,6 +235,12 @@
     return fig;
   }
 
+  function makeBlankCell() {
+    const d = document.createElement("div");
+    d.className = "panel-blank";
+    return d;
+  }
+
   async function renderCompare(methods, includeError) {
     const entries = methods.map((m) => ({ m, e: entryFor(m, state.task, state.camera) })).filter((x) => x.e);
     const compareRoot = el("#compare-view");
@@ -268,46 +274,77 @@
     if (!state.compareSampleIdxStr) return;
 
     const refSample = entries[0].e.samples.find((s) => s.idx === state.compareSampleIdxStr);
-    refRoot.appendChild(makePanelFigure({ tagClass: "tag-input", tagText: "Input", labelText: "Rendered sim (real_A)", kind: "real_A", small: true }));
-    refRoot.appendChild(makePanelFigure({ tagClass: "tag-gt", tagText: "Ground truth", labelText: "Real target (real_B)", kind: "real_B", small: true }));
-    el('#compare-ref .panel[data-kind="real_A"] .panel-img').src = refSample.real_A;
-    el('#compare-ref .panel[data-kind="real_A"] .panel-img').dataset.full = refSample.real_A;
-    el('#compare-ref .panel[data-kind="real_B"] .panel-img').src = refSample.real_B;
-    el('#compare-ref .panel[data-kind="real_B"] .panel-img').dataset.full = refSample.real_B;
-
-    // Row 1: model output from every method, side by side.
-    const outSection = document.createElement("div");
-    outSection.className = "compare-section";
-    outSection.innerHTML = `<div class="compare-section-title">Model output</div><div class="compare-strip"></div>`;
-    const outStrip = outSection.querySelector(".compare-strip");
-    entries.forEach(({ m, e }) => {
-      const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
-      const fig = makePanelFigure({
-        tagClass: "tag-out", tagText: m,
-        labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
-        kind: "fake_B", small: true,
-      });
-      outStrip.appendChild(fig);
-      fig.querySelector(".panel-img").src = sample.fake_B;
-      fig.querySelector(".panel-img").dataset.full = sample.fake_B;
-    });
-    rowsRoot.appendChild(outSection);
-
-    // Row 2 (compare3 only): error map vs ground truth, side by side.
     const errorJobs = [];
+
     if (includeError) {
-      const errSection = document.createElement("div");
-      errSection.className = "compare-section";
-      errSection.innerHTML = `<div class="compare-section-title">Error map <span class="compare-section-sub">|model output &minus; ground truth|</span></div><div class="compare-strip"></div>`;
-      const errStrip = errSection.querySelector(".compare-strip");
+      // Unified grid: row 1 = Input, Ground truth, then each method's output;
+      // row 2 = two blank cells (under Input/GT), then each method's error map,
+      // so every error map lines up directly under its own output.
+      const cols = 2 + entries.length;
+      const grid = document.createElement("div");
+      grid.className = "compare-grid";
+      grid.style.gridTemplateColumns = `repeat(${cols}, minmax(180px, 1fr))`;
+
+      const inputFig = makePanelFigure({ tagClass: "tag-input", tagText: "Input", labelText: "Rendered sim (real_A)", kind: "real_A" });
+      inputFig.querySelector(".panel-img").src = refSample.real_A;
+      inputFig.querySelector(".panel-img").dataset.full = refSample.real_A;
+      grid.appendChild(inputFig);
+
+      const gtFig = makePanelFigure({ tagClass: "tag-gt", tagText: "Ground truth", labelText: "Real target (real_B)", kind: "real_B" });
+      gtFig.querySelector(".panel-img").src = refSample.real_B;
+      gtFig.querySelector(".panel-img").dataset.full = refSample.real_B;
+      grid.appendChild(gtFig);
+
       entries.forEach(({ m, e }) => {
         const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
-        const fig = makePanelFigure({ tagClass: "tag-err", tagText: m, labelText: "vs ground truth", kind: "error_gt", small: true });
-        errStrip.appendChild(fig);
+        const fig = makePanelFigure({
+          tagClass: "tag-out", tagText: m,
+          labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
+          kind: "fake_B",
+        });
+        fig.querySelector(".panel-img").src = sample.fake_B;
+        fig.querySelector(".panel-img").dataset.full = sample.fake_B;
+        grid.appendChild(fig);
+      });
+
+      grid.appendChild(makeBlankCell());
+      grid.appendChild(makeBlankCell());
+
+      entries.forEach(({ m, e }) => {
+        const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
+        const fig = makePanelFigure({ tagClass: "tag-err", tagText: m, labelText: "vs ground truth", kind: "error_gt" });
+        grid.appendChild(fig);
         const canvas = fig.querySelector(".panel-error-canvas");
         errorJobs.push(computeErrorMap(sample.real_B, sample.fake_B, canvas).then((u) => { canvas.dataset.full = u; }));
       });
-      rowsRoot.appendChild(errSection);
+
+      rowsRoot.appendChild(grid);
+    } else {
+      // Compare-all: a reference block (Input/GT) followed by one row of
+      // model outputs only, no error maps.
+      refRoot.appendChild(makePanelFigure({ tagClass: "tag-input", tagText: "Input", labelText: "Rendered sim (real_A)", kind: "real_A", small: true }));
+      refRoot.appendChild(makePanelFigure({ tagClass: "tag-gt", tagText: "Ground truth", labelText: "Real target (real_B)", kind: "real_B", small: true }));
+      el('#compare-ref .panel[data-kind="real_A"] .panel-img').src = refSample.real_A;
+      el('#compare-ref .panel[data-kind="real_A"] .panel-img').dataset.full = refSample.real_A;
+      el('#compare-ref .panel[data-kind="real_B"] .panel-img').src = refSample.real_B;
+      el('#compare-ref .panel[data-kind="real_B"] .panel-img').dataset.full = refSample.real_B;
+
+      const outSection = document.createElement("div");
+      outSection.className = "compare-section";
+      outSection.innerHTML = `<div class="compare-section-title">Model output</div><div class="compare-strip"></div>`;
+      const outStrip = outSection.querySelector(".compare-strip");
+      entries.forEach(({ m, e }) => {
+        const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
+        const fig = makePanelFigure({
+          tagClass: "tag-out", tagText: m,
+          labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
+          kind: "fake_B", small: true,
+        });
+        outStrip.appendChild(fig);
+        fig.querySelector(".panel-img").src = sample.fake_B;
+        fig.querySelector(".panel-img").dataset.full = sample.fake_B;
+      });
+      rowsRoot.appendChild(outSection);
     }
 
     try { await Promise.all(errorJobs); } catch (e) { console.error("compare error maps failed", e); }
