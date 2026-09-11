@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<title>Sim2Real Baseline Gallery</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◧</span>
+      <div class="brand-text">
+        <h1>Sim2Real Baseline Gallery</h1>
+        <p>Input / Ground Truth / Model Output / Error Map &mdash; per baseline, per task, per camera</p>
+      </div>
+    </div>
+    <div class="topbar-controls">
+      <div class="segmented" id="task-tabs"></div>
+      <div class="segmented" id="camera-tabs"></div>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="sidebar">
+      <div class="sidebar-head">Baselines <span class="count" id="method-count"></span></div>
+      <div class="method-list" id="method-list"></div>
+    </aside>
+
+    <main class="content">
+      <div class="entry-header">
+        <div class="entry-title">
+          <h2 id="entry-method-name">&mdash;</h2>
+          <div class="entry-sub" id="entry-task-cam">&mdash;</div>
+        </div>
+        <div class="entry-metrics" id="entry-metrics"></div>
+      </div>
+
+      <div class="sample-strip-wrap">
+        <button class="strip-nav" id="strip-prev" aria-label="scroll left">&#8249;</button>
+        <div class="sample-strip" id="sample-strip"></div>
+        <button class="strip-nav" id="strip-next" aria-label="scroll right">&#8250;</button>
+      </div>
+
+      <div class="panels" id="panels">
+        <figure class="panel" data-kind="real_A">
+          <div class="panel-head"><span class="panel-tag tag-input">Input</span><span class="panel-label">Rendered sim (real_A)</span></div>
+          <div class="panel-canvas-wrap"><img class="panel-img" alt="input" /></div>
+        </figure>
+        <figure class="panel" data-kind="real_B">
+          <div class="panel-head"><span class="panel-tag tag-gt">Ground truth</span><span class="panel-label">Real target (real_B)</span></div>
+          <div class="panel-canvas-wrap"><img class="panel-img" alt="ground truth" /></div>
+        </figure>
+        <figure class="panel" data-kind="fake_B">
+          <div class="panel-head"><span class="panel-tag tag-out">Model output</span><span class="panel-label">Translated (fake_B)</span></div>
+          <div class="panel-canvas-wrap"><img class="panel-img" alt="model output" /></div>
+        </figure>
+        <figure class="panel" data-kind="error">
+          <div class="panel-head"><span class="panel-tag tag-err">Error map</span><span class="panel-label">|model output &minus; ground truth|</span></div>
+          <div class="panel-canvas-wrap"><canvas class="panel-error-canvas"></canvas></div>
+        </figure>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="lightbox" class="lightbox" hidden>
+  <button class="lightbox-close" id="lightbox-close" aria-label="close">&times;</button>
+  <div class="lightbox-tag" id="lightbox-tag"></div>
+  <div class="lightbox-stage" id="lightbox-stage">
+    <img id="lightbox-img" alt="" />
+    <canvas id="lightbox-canvas" hidden></canvas>
+  </div>
+  <div class="lightbox-hint">scroll or pinch to zoom &middot; drag to pan &middot; double-click to reset</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
