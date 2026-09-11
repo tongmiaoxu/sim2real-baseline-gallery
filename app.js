@@ -4,9 +4,9 @@
   const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "DINO-Align (Ours)"];
 
   const VIEW_OPTIONS = [
-    { key: "single", label: "Single baseline" },
     { key: "compare3", label: "Compare: main 3" },
     { key: "compareAll", label: "Compare: all baselines" },
+    { key: "single", label: "Single baseline" },
   ];
 
   const state = {
@@ -16,7 +16,7 @@
     camera: null,
     sampleIdx: 0, // index into entry.samples, single-baseline mode
     compareSampleIdxStr: null, // sample idx string ("000007"), compare modes
-    viewMode: "single",
+    viewMode: "compare3",
     entryIndex: new Map(), // key: method|task|camera -> entry
   };
 
@@ -148,7 +148,7 @@
     entry.samples.forEach((s, i) => {
       const d = document.createElement("div");
       d.className = "thumb" + (i === state.sampleIdx ? " active" : "");
-      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="sample ${s.idx}"><span class="thumb-idx">${s.idx}</span>`;
+      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${i + 1}"><span class="thumb-idx">Example ${i + 1}</span>`;
       d.addEventListener("click", () => { state.sampleIdx = i; render(); });
       strip.appendChild(d);
     });
@@ -157,11 +157,11 @@
   function buildSampleStripMulti(idxList, refEntry) {
     const strip = el("#sample-strip");
     strip.innerHTML = "";
-    idxList.forEach((idx) => {
+    idxList.forEach((idx, i) => {
       const s = refEntry.samples.find((x) => x.idx === idx);
       const d = document.createElement("div");
       d.className = "thumb" + (idx === state.compareSampleIdxStr ? " active" : "");
-      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="sample ${idx}"><span class="thumb-idx">${idx}</span>`;
+      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${i + 1}"><span class="thumb-idx">Example ${i + 1}</span>`;
       d.addEventListener("click", () => { state.compareSampleIdxStr = idx; render(); });
       strip.appendChild(d);
     });
@@ -275,43 +275,40 @@
     el('#compare-ref .panel[data-kind="real_B"] .panel-img').src = refSample.real_B;
     el('#compare-ref .panel[data-kind="real_B"] .panel-img').dataset.full = refSample.real_B;
 
-    const errorJobs = [];
+    // Row 1: model output from every method, side by side.
+    const outSection = document.createElement("div");
+    outSection.className = "compare-section";
+    outSection.innerHTML = `<div class="compare-section-title">Model output</div><div class="compare-strip"></div>`;
+    const outStrip = outSection.querySelector(".compare-strip");
     entries.forEach(({ m, e }) => {
       const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
-      const row = document.createElement("div");
-      row.className = "compare-row";
-      row.innerHTML = `
-        <div class="compare-row-head">
-          <span class="compare-method-name">${m}</span>
-          <span class="compare-method-metrics">
-            <span>LPIPS <b>${fmt(e.lpips)}</b></span>
-            <span>J&amp;F <b>${fmt(e.jf)}</b></span>
-          </span>
-        </div>
-        <div class="compare-panels"></div>
-      `;
-      const panelsRoot = row.querySelector(".compare-panels");
-      const outFig = makePanelFigure({ tagClass: "tag-out", tagText: "Model output", labelText: "Translated (fake_B)", kind: "fake_B", small: true });
-      panelsRoot.appendChild(outFig);
-      outFig.querySelector(".panel-img").src = sample.fake_B;
-      outFig.querySelector(".panel-img").dataset.full = sample.fake_B;
-
-      if (includeError) {
-        const errGT = makePanelFigure({ tagClass: "tag-err", tagText: "Error vs GT", labelText: "|output − GT|", kind: "error_gt", small: true });
-        const errIn = makePanelFigure({ tagClass: "tag-err2", tagText: "Error vs input", labelText: "|output − input|", kind: "error_input", small: true });
-        panelsRoot.appendChild(errGT);
-        panelsRoot.appendChild(errIn);
-        const canvasGT = errGT.querySelector(".panel-error-canvas");
-        const canvasIn = errIn.querySelector(".panel-error-canvas");
-        errorJobs.push(
-          computeErrorMap(sample.real_B, sample.fake_B, canvasGT).then((u) => { canvasGT.dataset.full = u; })
-        );
-        errorJobs.push(
-          computeErrorMap(sample.real_A, sample.fake_B, canvasIn).then((u) => { canvasIn.dataset.full = u; })
-        );
-      }
-      rowsRoot.appendChild(row);
+      const fig = makePanelFigure({
+        tagClass: "tag-out", tagText: m,
+        labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
+        kind: "fake_B", small: true,
+      });
+      outStrip.appendChild(fig);
+      fig.querySelector(".panel-img").src = sample.fake_B;
+      fig.querySelector(".panel-img").dataset.full = sample.fake_B;
     });
+    rowsRoot.appendChild(outSection);
+
+    // Row 2 (compare3 only): error map vs ground truth, side by side.
+    const errorJobs = [];
+    if (includeError) {
+      const errSection = document.createElement("div");
+      errSection.className = "compare-section";
+      errSection.innerHTML = `<div class="compare-section-title">Error map <span class="compare-section-sub">|model output &minus; ground truth|</span></div><div class="compare-strip"></div>`;
+      const errStrip = errSection.querySelector(".compare-strip");
+      entries.forEach(({ m, e }) => {
+        const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
+        const fig = makePanelFigure({ tagClass: "tag-err", tagText: m, labelText: "vs ground truth", kind: "error_gt", small: true });
+        errStrip.appendChild(fig);
+        const canvas = fig.querySelector(".panel-error-canvas");
+        errorJobs.push(computeErrorMap(sample.real_B, sample.fake_B, canvas).then((u) => { canvas.dataset.full = u; }));
+      });
+      rowsRoot.appendChild(errSection);
+    }
 
     try { await Promise.all(errorJobs); } catch (e) { console.error("compare error maps failed", e); }
   }
