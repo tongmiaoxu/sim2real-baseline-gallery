@@ -19,13 +19,14 @@
       </div>
     </div>
     <div class="topbar-controls">
+      <div class="segmented" id="view-tabs"></div>
       <div class="segmented" id="task-tabs"></div>
       <div class="segmented" id="camera-tabs"></div>
     </div>
   </header>
 
   <div class="body">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">Baselines <span class="count" id="method-count"></span></div>
       <div class="method-list" id="method-list"></div>
     </aside>
@@ -66,6 +67,11 @@
           <div class="panel-head"><span class="panel-tag tag-err2">Error vs input</span><span class="panel-label">|model output &minus; input|</span></div>
           <div class="panel-canvas-wrap"><canvas class="panel-error-canvas"></canvas></div>
         </figure>
+      </div>
+
+      <div class="compare-view" id="compare-view" hidden>
+        <div class="compare-ref" id="compare-ref"></div>
+        <div class="compare-rows" id="compare-rows"></div>
       </div>
     </main>
   </div>
