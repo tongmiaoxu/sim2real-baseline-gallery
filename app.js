@@ -3,6 +3,19 @@
 
   const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "DINO-Align (Ours)"];
 
+  // Curated example numbers (1-indexed) to show for specific tasks. Tasks not
+  // listed here show every held-out example.
+  const SAMPLE_FILTER = {
+    "Shelf Book": new Set(
+      [6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 25].map((n) => String(n - 1).padStart(6, "0"))
+    ),
+  };
+  function exampleNumber(idxStr) { return parseInt(idxStr, 10) + 1; }
+  function keepSample(task, idxStr) {
+    const keep = SAMPLE_FILTER[task];
+    return !keep || (idxStr != null && keep.has(idxStr));
+  }
+
   const VIEW_OPTIONS = [
     { key: "compare3", label: "Compare: main 3" },
     { key: "compareAll", label: "Compare: all baselines" },
@@ -146,9 +159,11 @@
     strip.innerHTML = "";
     if (!entry) return;
     entry.samples.forEach((s, i) => {
+      if (!keepSample(entry.task, s.idx)) return;
+      const n = exampleNumber(s.idx);
       const d = document.createElement("div");
       d.className = "thumb" + (i === state.sampleIdx ? " active" : "");
-      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${i + 1}"><span class="thumb-idx">Example ${i + 1}</span>`;
+      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${n}"><span class="thumb-idx">Example ${n}</span>`;
       d.addEventListener("click", () => { state.sampleIdx = i; render(); });
       strip.appendChild(d);
     });
@@ -157,11 +172,12 @@
   function buildSampleStripMulti(idxList, refEntry) {
     const strip = el("#sample-strip");
     strip.innerHTML = "";
-    idxList.forEach((idx, i) => {
+    idxList.forEach((idx) => {
       const s = refEntry.samples.find((x) => x.idx === idx);
+      const n = exampleNumber(idx);
       const d = document.createElement("div");
       d.className = "thumb" + (idx === state.compareSampleIdxStr ? " active" : "");
-      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${i + 1}"><span class="thumb-idx">Example ${i + 1}</span>`;
+      d.innerHTML = `<img src="${s.real_B}" loading="lazy" alt="Example ${n}"><span class="thumb-idx">Example ${n}</span>`;
       d.addEventListener("click", () => { state.compareSampleIdxStr = idx; render(); });
       strip.appendChild(d);
     });
@@ -258,7 +274,7 @@
       return;
     }
 
-    const idxList = intersectIdx(entries.map((x) => x.e));
+    const idxList = intersectIdx(entries.map((x) => x.e)).filter((idx) => keepSample(state.task, idx));
     if (!state.compareSampleIdxStr || !idxList.includes(state.compareSampleIdxStr)) {
       state.compareSampleIdxStr = idxList[0] || null;
     }
@@ -370,6 +386,10 @@
         ? `${entry.task} · ${entry.camera} camera · ${entry.n_samples} held-out samples`
         : "No data for this combination";
       renderMetrics(entry);
+      if (entry && !keepSample(entry.task, (entry.samples[state.sampleIdx] || {}).idx)) {
+        const firstKept = entry.samples.findIndex((s) => keepSample(entry.task, s.idx));
+        state.sampleIdx = firstKept >= 0 ? firstKept : 0;
+      }
       buildSampleStrip(entry);
       renderPanels(entry);
     } else if (state.viewMode === "compare3") {
