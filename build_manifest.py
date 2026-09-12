@@ -5,7 +5,7 @@ REPO = "/home/tina/Documents/lerobot_pi05"
 OUT_DIR = os.path.join(REPO, "viz_site", "data")
 XLSX = "/home/tina/Documents/ieeeconf-git/baselines_lpips_jf.xlsx"
 
-TASKS = ["Shelf Book", "Place Mug", "Pour Liquid", "Pick Shoe"]
+TASKS = ["Place Mug", "Shelf Book", "Pour Liquid", "Pick Shoe"]
 TASK_KEY = {"Shelf Book": "book_shelving", "Place Mug": "place_mug", "Pour Liquid": "pouring", "Pick Shoe": "pick_shoe"}
 CAMERAS = ["Stationary", "Wrist"]
 CAM_KEY = {"Stationary": "stationary", "Wrist": "wrist"}
