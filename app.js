@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "DINO-Align (Ours)"];
+  const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "STRIPE (Ours)"];
 
   // Curated example numbers (1-indexed) to show for specific tasks. Tasks not
   // listed here show every held-out example.
@@ -281,7 +281,7 @@
 
     el("#entry-method-name").textContent =
       methods.length === COMPARE3_METHODS.length && methods.every((m, i) => m === COMPARE3_METHODS[i])
-        ? "Comparing: Classical Color Alignment · Pix2Pix · DINO-Align"
+        ? "Comparing: Classical Color Alignment · Pix2Pix · STRIPE"
         : `Comparing all ${entries.length} baselines`;
     el("#entry-task-cam").textContent = `${state.task} · ${state.camera} camera · ${idxList.length} shared samples`;
 
@@ -473,7 +473,7 @@
     state.manifest = manifest;
     manifest.entries.forEach((e) => state.entryIndex.set(keyOf(e.method, e.task, e.camera), e));
 
-    state.method = manifest.methods[manifest.methods.length - 1]; // default: DINO-Align (Ours)
+    state.method = manifest.methods[manifest.methods.length - 1]; // default: STRIPE (Ours)
     state.task = manifest.tasks[0];
     state.camera = manifest.cameras[0];
 

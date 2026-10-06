@@ -1,8 +1,9 @@
-import os, json, re, sys
+import os, json, re, shutil, sys
 import openpyxl
 
 REPO = "/home/tina/Documents/lerobot_pi05"
-OUT_DIR = os.path.join(REPO, "viz_site", "data")
+SITE = os.path.dirname(os.path.abspath(__file__))
+OUT_DIR = os.path.join(SITE, "data")
 XLSX = "/home/tina/Documents/ieeeconf-git/baselines_lpips_jf.xlsx"
 
 TASKS = ["Place Mug", "Shelf Book", "Pour Liquid", "Pick Shoe"]
@@ -10,21 +11,23 @@ TASK_KEY = {"Shelf Book": "book_shelving", "Place Mug": "place_mug", "Pour Liqui
 CAMERAS = ["Stationary", "Wrist"]
 CAM_KEY = {"Stationary": "stationary", "Wrist": "wrist"}
 
-METHOD_ORDER = [
-    "Raw Render",
-    "Classical Color Alignment",
-    "Pix2Pix",
-    "Pix2Pix-DINO",
-    "DINO-Align w/ GS",
-    "DINO-Align Specialist",
-    "GAN-Only",
-    "DINO-Only",
-    "Paired-Default",
-    "DINO-Align+L2",
-    "DINO-Align+LPIPS",
-    "DINO-Align+Paired",
-    "DINO-Align (Ours)",
-]
+# Display name (paper naming, Table IV order) -> row name in baselines_lpips_jf.xlsx
+METHODS = {
+    "Raw Render": "Raw Render",
+    "Classical Color Alignment": "Classical Color Alignment",
+    "Pix2Pix": "Pix2Pix",
+    "Pix2Pix-DINO": "Pix2Pix-DINO",
+    "Pix2Pix-DINO w/o Pixel": "Pix2Pix-DINO w/o Pixel",
+    "Pix2Pix GAN-Only": "Pix2Pix GAN-Only",
+    "Turbo-Reconstruction": "Paired-Default",
+    "GAN-Only": "GAN-Only",
+    "DINO-Only": "DINO-Only",
+    "STRIPE+L2": "DINO-Align+L2",
+    "STRIPE+LPIPS": "DINO-Align+LPIPS",
+    "STRIPE+Paired": "DINO-Align+Paired",
+    "STRIPE (Ours)": "DINO-Align (Ours)",
+}
+METHOD_ORDER = list(METHODS)
 
 def dirs_for(method, task_key, cam):
     # cam: 'stationary' or 'wrist'
@@ -34,30 +37,25 @@ def dirs_for(method, task_key, cam):
         return f"outputs/pix2pix_{cam}_{short(task_key)}/results"
     if method == "Pix2Pix-DINO":
         return "outputs/pix2pix_dino_all_tasks/results"
-    if method == "DINO-Align w/ GS":
-        suf = "" if task_key == "place_mug" else f"_{short2(task_key)}"
-        return f"outputs/turbo_sim2real_{cam}_dino{suf}/results"
-    if method == "DINO-Align Specialist":
-        suf = "_mujoco" if task_key == "place_mug" else f"_{short2(task_key)}_mujoco"
-        return f"outputs/turbo_sim2real_{cam}_dino{suf}/results"
+    if method == "Pix2Pix-DINO w/o Pixel":
+        return "outputs/pix2pix_dino_all_tasks_no_l1/results"
+    if method == "Pix2Pix GAN-Only":
+        return "outputs/pix2pix_all_tasks_gan_only/results"
+    if method == "Turbo-Reconstruction":
+        return "outputs/turbo_sim2real_all_tasks_paired_default/results"
     if method == "GAN-Only":
         return "outputs/turbo_sim2real_all_tasks_gan_only/results"
     if method == "DINO-Only":
         return "outputs/turbo_sim2real_all_tasks_dino_only/results"
-    if method == "Paired-Default":
-        return "outputs/turbo_sim2real_all_tasks_paired_default/results"
-    if method == "DINO-Align+L2":
+    if method == "STRIPE+L2":
         return "outputs/turbo_sim2real_all_tasks_ours_l2/results"
-    if method == "DINO-Align+LPIPS":
+    if method == "STRIPE+LPIPS":
         return "outputs/turbo_sim2real_all_tasks_ours_lpips/results"
-    if method == "DINO-Align+Paired":
+    if method == "STRIPE+Paired":
         return "outputs/turbo_sim2real_all_tasks_ours_paired/results"
-    if method == "DINO-Align (Ours)":
-        # visualization-only choice: show the turbo-mujoco per-task specialist
-        # checkpoints here too (same source as "DINO-Align Specialist"),
-        # instead of the joint all-tasks checkpoint.
-        suf = "_mujoco" if task_key == "place_mug" else f"_{short2(task_key)}_mujoco"
-        return f"outputs/turbo_sim2real_{cam}_dino{suf}/results"
+    if method == "STRIPE (Ours)":
+        # joint all-tasks checkpoint, the model reported in the paper
+        return "outputs/turbo_sim2real_all_tasks/results"
     raise ValueError(method)
 
 def short(task_key):
@@ -92,11 +90,11 @@ def list_triples(images_dir, need_fake=True):
     return out, idxs
 
 def rel_symlink(dst, src_abs):
+    # copies the file (name kept for history); the published site needs real files
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     if os.path.lexists(dst):
         os.remove(dst)
-    rel = os.path.relpath(src_abs, os.path.dirname(dst))
-    os.symlink(rel, dst)
+    shutil.copy2(src_abs, dst)
 
 def main():
     wb = openpyxl.load_workbook(XLSX, data_only=True)
@@ -144,11 +142,11 @@ def main():
                         f_dst = a_dst  # raw render: model output == input render
                     out_samples.append({
                         "idx": idx,
-                        "real_A": os.path.relpath(a_dst, os.path.join(REPO, "viz_site")),
-                        "real_B": os.path.relpath(b_dst, os.path.join(REPO, "viz_site")),
-                        "fake_B": os.path.relpath(f_dst, os.path.join(REPO, "viz_site")),
+                        "real_A": os.path.relpath(a_dst, SITE),
+                        "real_B": os.path.relpath(b_dst, SITE),
+                        "fake_B": os.path.relpath(f_dst, SITE),
                     })
-                m = metrics.get((method, task, cam), {})
+                m = metrics.get((METHODS[method], task, cam), {})
                 entries.append({
                     "method": method,
                     "method_key": mkey,
@@ -177,11 +175,10 @@ def main():
         "method_keys": {m: re.sub(r"[^a-z0-9]+", "_", m.lower()).strip("_") for m in METHOD_ORDER},
         "tasks": TASKS,
         "cameras": CAMERAS,
-        "means": means,
+        "means": {d: means.get(x, {}) for d, x in METHODS.items()},
         "entries": entries,
     }
-    os.makedirs(os.path.join(REPO, "viz_site"), exist_ok=True)
-    with open(os.path.join(REPO, "viz_site", "manifest.json"), "w") as f:
+    with open(os.path.join(SITE, "manifest.json"), "w") as f:
         json.dump(manifest, f)
 
     print(f"entries built: {len(entries)} / {len(METHOD_ORDER)*len(TASKS)*len(CAMERAS)}")
