@@ -2,6 +2,7 @@
   "use strict";
 
   const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "STRIPE (Ours)"];
+  const PIX2PIX_METHODS = ["Pix2Pix", "Pix2Pix-DINO", "Pix2Pix-DINO w/o Pixel", "Pix2Pix GAN-Only"];
 
   // Curated example numbers (1-indexed) to show for specific tasks. Tasks not
   // listed here show every held-out example.
@@ -18,6 +19,7 @@
 
   const VIEW_OPTIONS = [
     { key: "compare3", label: "Compare: main 3" },
+    { key: "comparePix2pix", label: "Compare: Pix2Pix variants" },
     { key: "compareAll", label: "Compare: all baselines" },
     { key: "single", label: "Single baseline" },
   ];
@@ -257,7 +259,7 @@
     return d;
   }
 
-  async function renderCompare(methods, includeError) {
+  async function renderCompare(methods, includeError, title) {
     const entries = methods.map((m) => ({ m, e: entryFor(m, state.task, state.camera) })).filter((x) => x.e);
     const compareRoot = el("#compare-view");
     const rowsRoot = el("#compare-rows");
@@ -279,10 +281,7 @@
       state.compareSampleIdxStr = idxList[0] || null;
     }
 
-    el("#entry-method-name").textContent =
-      methods.length === COMPARE3_METHODS.length && methods.every((m, i) => m === COMPARE3_METHODS[i])
-        ? "Comparing: Classical Color Alignment · Pix2Pix · STRIPE"
-        : `Comparing all ${entries.length} baselines`;
+    el("#entry-method-name").textContent = title || `Comparing all ${entries.length} baselines`;
     el("#entry-task-cam").textContent = `${state.task} · ${state.camera} camera · ${idxList.length} shared samples`;
 
     buildSampleStripMulti(idxList, entries[0].e);
@@ -393,7 +392,9 @@
       buildSampleStrip(entry);
       renderPanels(entry);
     } else if (state.viewMode === "compare3") {
-      renderCompare(COMPARE3_METHODS, true);
+      renderCompare(COMPARE3_METHODS, true, "Comparing: Classical Color Alignment · Pix2Pix · STRIPE");
+    } else if (state.viewMode === "comparePix2pix") {
+      renderCompare(PIX2PIX_METHODS, true, "Comparing Pix2Pix variants: Pix2Pix · Pix2Pix-DINO · Pix2Pix-DINO w/o Pixel · Pix2Pix GAN-Only");
     } else if (state.viewMode === "compareAll") {
       renderCompare(state.manifest.methods, false);
     }
