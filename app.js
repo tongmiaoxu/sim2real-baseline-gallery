@@ -3,6 +3,18 @@
 
   const COMPARE3_METHODS = ["Classical Color Alignment", "Pix2Pix", "STRIPE (Ours)"];
   const PIX2PIX_METHODS = ["Pix2Pix", "Pix2Pix-DINO", "Pix2Pix-DINO w/o Pixel", "Pix2Pix GAN-Only"];
+  const ARCH_METHODS = ["Pix2Pix", "Pix2Pix-Latent", "STRIPE (Random Init)", "STRIPE (Ours)"];
+  // Newly added translators: highlighted with a "NEW" badge everywhere.
+  const NEW_METHODS = new Set(["Pix2Pix-Latent", "STRIPE+L2 (w=2)", "STRIPE+LPIPS (w=10)", "STRIPE (Random Init)"]);
+  // Shown only in the architecture comparison, not in "Compare: all baselines".
+  const EXCLUDE_FROM_ALL = new Set(["Pix2Pix-Latent", "STRIPE (Random Init)"]);
+  function isNew(m) { return NEW_METHODS.has(m); }
+  // Per task/camera metrics when available; otherwise the method's overall mean.
+  function metricLabel(m, e) {
+    if (typeof e.lpips === "number" || typeof e.jf === "number") return `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`;
+    const mean = (state.manifest.means && state.manifest.means[m]) || {};
+    return `Mean LPIPS ${fmt(mean.lpips)} · J&amp;F ${fmt(mean.jf)}`;
+  }
 
   // Curated example numbers (1-indexed) to show for specific tasks. Tasks not
   // listed here show every held-out example.
@@ -20,6 +32,7 @@
   const VIEW_OPTIONS = [
     { key: "compare3", label: "Compare: main 3" },
     { key: "comparePix2pix", label: "Compare: Pix2Pix variants" },
+    { key: "compareArch", label: "Architecture comparison" },
     { key: "compareAll", label: "Compare: all baselines" },
     { key: "single", label: "Single baseline" },
   ];
@@ -132,7 +145,7 @@
     el("#method-count").textContent = `(${state.manifest.methods.length})`;
     state.manifest.methods.forEach((m) => {
       const row = document.createElement("div");
-      row.className = "method-row" + (state.method === m ? " active" : "");
+      row.className = "method-row" + (state.method === m ? " active" : "") + (isNew(m) ? " is-new" : "");
       row.dataset.method = m;
       const mean = (state.manifest.means && state.manifest.means[m]) || {};
       row.innerHTML = `
@@ -314,9 +327,10 @@
         const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
         const fig = makePanelFigure({
           tagClass: "tag-out", tagText: m,
-          labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
+          labelText: metricLabel(m, e),
           kind: "fake_B",
         });
+        if (isNew(m)) fig.classList.add("is-new");
         fig.querySelector(".panel-img").src = sample.fake_B;
         fig.querySelector(".panel-img").dataset.full = sample.fake_B;
         grid.appendChild(fig);
@@ -328,6 +342,7 @@
       entries.forEach(({ m, e }) => {
         const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
         const fig = makePanelFigure({ tagClass: "tag-err", tagText: m, labelText: "vs ground truth", kind: "error_gt" });
+        if (isNew(m)) fig.classList.add("is-new");
         grid.appendChild(fig);
         const canvas = fig.querySelector(".panel-error-canvas");
         errorJobs.push(computeErrorMap(sample.real_B, sample.fake_B, canvas).then((u) => { canvas.dataset.full = u; }));
@@ -352,9 +367,10 @@
         const sample = e.samples.find((s) => s.idx === state.compareSampleIdxStr);
         const fig = makePanelFigure({
           tagClass: "tag-out", tagText: m,
-          labelText: `LPIPS ${fmt(e.lpips)} · J&amp;F ${fmt(e.jf)}`,
+          labelText: metricLabel(m, e),
           kind: "fake_B", small: true,
         });
+        if (isNew(m)) fig.classList.add("is-new");
         outStrip.appendChild(fig);
         fig.querySelector(".panel-img").src = sample.fake_B;
         fig.querySelector(".panel-img").dataset.full = sample.fake_B;
@@ -395,8 +411,10 @@
       renderCompare(COMPARE3_METHODS, true, "Comparing: Classical Color Alignment · Pix2Pix · STRIPE");
     } else if (state.viewMode === "comparePix2pix") {
       renderCompare(PIX2PIX_METHODS, true, "Comparing Pix2Pix variants: Pix2Pix · Pix2Pix-DINO · Pix2Pix-DINO w/o Pixel · Pix2Pix GAN-Only");
+    } else if (state.viewMode === "compareArch") {
+      renderCompare(ARCH_METHODS, true, "Architecture comparison: Pix2Pix · Pix2Pix-Latent · STRIPE (Random Init) · STRIPE (Ours)");
     } else if (state.viewMode === "compareAll") {
-      renderCompare(state.manifest.methods, false);
+      renderCompare(state.manifest.methods.filter((m) => !EXCLUDE_FROM_ALL.has(m)), false);
     }
   }
 

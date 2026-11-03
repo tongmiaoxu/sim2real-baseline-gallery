@@ -19,15 +19,34 @@ METHODS = {
     "Pix2Pix-DINO": "Pix2Pix-DINO",
     "Pix2Pix-DINO w/o Pixel": "Pix2Pix-DINO w/o Pixel",
     "Pix2Pix GAN-Only": "Pix2Pix GAN-Only",
+    "Pix2Pix-Latent": "Pix2Pix-Latent",
     "Turbo-Reconstruction": "Paired-Default",
     "GAN-Only": "GAN-Only",
     "DINO-Only": "DINO-Only",
     "STRIPE+L2": "DINO-Align+L2",
     "STRIPE+LPIPS": "DINO-Align+LPIPS",
     "STRIPE+Paired": "DINO-Align+Paired",
+    "STRIPE+L2 (w=2)": "DINO-Align+L2 (w=2)",
+    "STRIPE+LPIPS (w=10)": "DINO-Align+LPIPS (w=10)",
+    "STRIPE (Random Init)": "DINO-Align (Random Init)",
     "STRIPE (Ours)": "DINO-Align (Ours)",
 }
 METHOD_ORDER = list(METHODS)
+
+# Mean metrics for methods not (yet) in the xlsx; only means are available.
+MEAN_OVERRIDES = {
+    "STRIPE+L2 (w=2)":      {"lpips": 0.2574, "jf": 0.8921},
+    "STRIPE+LPIPS (w=10)":  {"lpips": 0.1589, "jf": 0.6173},
+    "STRIPE (Random Init)": {"lpips": 0.2580, "jf": 0.9125},
+    "Pix2Pix-Latent":       {"lpips": 0.3453, "jf": 0.0848},
+}
+
+def merged_mean(from_xlsx, override):
+    out = dict(from_xlsx)
+    for k, v in override.items():
+        if out.get(k) is None:
+            out[k] = v
+    return out
 
 def dirs_for(method, task_key, cam):
     # cam: 'stationary' or 'wrist'
@@ -41,6 +60,14 @@ def dirs_for(method, task_key, cam):
         return "outputs/pix2pix_dino_all_tasks_no_l1/results"
     if method == "Pix2Pix GAN-Only":
         return "outputs/pix2pix_all_tasks_gan_only/results"
+    if method == "Pix2Pix-Latent":
+        return "outputs/pix2pix_all_tasks_latent_mujoco/results"
+    if method == "STRIPE+L2 (w=2)":
+        return "outputs/turbo_sim2real_all_tasks_dino_l2w2_mujoco/results"
+    if method == "STRIPE+LPIPS (w=10)":
+        return "outputs/turbo_sim2real_all_tasks_dino_lpips10_mujoco/results"
+    if method == "STRIPE (Random Init)":
+        return "outputs/turbo_sim2real_all_tasks_ours_random_init_mujoco/results"
     if method == "Turbo-Reconstruction":
         return "outputs/turbo_sim2real_all_tasks_paired_default/results"
     if method == "GAN-Only":
@@ -175,7 +202,7 @@ def main():
         "method_keys": {m: re.sub(r"[^a-z0-9]+", "_", m.lower()).strip("_") for m in METHOD_ORDER},
         "tasks": TASKS,
         "cameras": CAMERAS,
-        "means": {d: means.get(x, {}) for d, x in METHODS.items()},
+        "means": {d: merged_mean(means.get(x, {}), MEAN_OVERRIDES.get(d, {})) for d, x in METHODS.items()},
         "entries": entries,
     }
     with open(os.path.join(SITE, "manifest.json"), "w") as f:

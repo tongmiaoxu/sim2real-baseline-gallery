@@ -239,3 +239,11 @@ body{
 
 .panel.panel--sm{ width:230px; flex:0 0 230px; }
 @media (max-width: 560px){ .panel.panel--sm{ width:100%; flex-basis:auto; } }
+
+/* ---------- newly added methods: light-yellow boxes ---------- */
+:root{ --new-bg: #fff6cc; --new-border: #f2d36b; }
+@media (prefers-color-scheme: dark){ :root{ --new-bg: #3a3214; --new-border: #8a7425; } }
+.method-row.is-new{ background:var(--new-bg); border-color:var(--new-border); }
+.method-row.is-new.active{ border-color:var(--accent); }
+.panel.is-new{ background:var(--new-bg); border-color:var(--new-border); }
+.panel.is-new .panel-head{ border-bottom-color:var(--new-border); }
